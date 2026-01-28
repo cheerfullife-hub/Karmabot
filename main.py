@@ -28,44 +28,39 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 # --- STARTUP EVENT ---
 @bot.event
 async def on_ready():
-    print(f"✅ {bot.user} is online!")
+    print(f"✅ {bot.user} is online and ready!")
     try:
         synced = await bot.tree.sync()
         print(f"Synced {len(synced)} command(s)")
-        # Status: "Watching you..."
-        await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="Procraft 👀"))
+        await bot.change_presence(activity=discord.Game(name="Spamming Pings 🔔"))
     except Exception as e:
         print(e)
 
-# --- THE CHAOS CONTROL PANEL ---
-class ChaosView(discord.ui.View):
+# --- COMMAND 1: HELLO ---
+@bot.tree.command(name="hello", description="Says hello")
+async def hello(interaction: discord.Interaction):
+    await interaction.response.send_message("Hello there! 👋 I am your new bot!")
+
+# --- COMMAND 2: THE FIXED BUTTON ---
+class SimpleView(discord.ui.View):
     def __init__(self):
-        super().__init__(timeout=None)
+        super().__init__(timeout=None) # This keeps the button alive!
 
-    # BUTTON 1: Friendly Hello Spam
-    @discord.ui.button(label="Spam Hello (x5)", style=discord.ButtonStyle.green)
-    async def hello_spam(self, interaction: discord.Interaction, button: discord.ui.Button):
-        # 1. Private confirmation
-        await interaction.response.send_message("Launching Hello Spam! 🚀", ephemeral=True)
-        # 2. Public Loop
-        for i in range(5):
-            await interaction.channel.send("Hello! 👋")
-            await asyncio.sleep(1) # Wait 1 second
+    @discord.ui.button(label="spam 5 times", style=discord.ButtonStyle.green)
+    async def my_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_message("✨ IT WORKS! ✨", ephemeral=True)
 
-    # BUTTON 2: The DANGEROUS Ping Spam
-    @discord.ui.button(label="PING EVERYONE (x5)", style=discord.ButtonStyle.red)
-    async def ping_spam(self, interaction: discord.Interaction, button: discord.ui.Button):
-        # 1. Private confirmation
-        await interaction.response.send_message("⚠️ NUKE LAUNCHED! ⚠️", ephemeral=True)
-        # 2. Public Loop
-        for i in range(5):
-            await interaction.channel.send("@everyone")
-            await asyncio.sleep(1) # Wait 1 second
+@bot.tree.command(name="spam", description="Spam 5 times")
+async def write(interaction: discord.Interaction):
+    await interaction.response.send_message("Click below:", view=SimpleView(), ephemeral=True)
 
-@bot.tree.command(name="chaos", description="Open the Secret Admin Panel 👮‍♂️")
-async def chaos(interaction: discord.Interaction):
-    # 'ephemeral=True' means ONLY YOU can see this menu!
-    await interaction.response.send_message("👇 Choose your weapon:", view=ChaosView(), ephemeral=True)
+# --- COMMAND 3: THE CHAOS ANNOUNCER ---
+@bot.tree.command(name="pingspam", description="Ping EVERYONE 5 times! 🔔")
+async def announce(interaction: discord.Interaction, message: str):
+    await interaction.response.send_message(f"📢 **STARTING!** 📢\nMessage: {message}")
+    for i in range(5):
+        await interaction.channel.send(f"@everyone 🔔 {message}")
+        await asyncio.sleep(1)
 
 # --- RUN THE BOT ---
 keep_alive()
