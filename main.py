@@ -1,6 +1,6 @@
 import discord
 import os
-import asyncio  # <--- NEW: Needed for the sleep timer!
+import asyncio
 from flask import Flask
 from threading import Thread
 from discord import app_commands
@@ -22,8 +22,7 @@ def keep_alive():
 
 # --- BOT SETUP ---
 intents = discord.Intents.default()
-# We usually turn this on to be safe, even if we just use slash commands
-intents.message_content = True 
+intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 # --- STARTUP EVENT ---
@@ -33,8 +32,7 @@ async def on_ready():
     try:
         synced = await bot.tree.sync()
         print(f"Synced {len(synced)} command(s)")
-        # Let's change the status to look cool
-        await bot.change_presence(activity=discord.Game(name="Annoying Everyone 🔔"))
+        await bot.change_presence(activity=discord.Game(name="Spamming Pings 🔔"))
     except Exception as e:
         print(e)
 
@@ -43,31 +41,26 @@ async def on_ready():
 async def hello(interaction: discord.Interaction):
     await interaction.response.send_message("Hello there! 👋 I am your new bot!")
 
-# --- COMMAND 2: THE SECRET BUTTON ---
-class SpamView(discord.ui.View):
+# --- COMMAND 2: THE FIXED BUTTON ---
+class SimpleView(discord.ui.View):
     def __init__(self):
-        super().__init__()
+        super().__init__(timeout=None) # This keeps the button alive!
 
-    @discord.ui.button(label="Write", style=discord.ButtonStyle.green)
-    async def write_button(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.send_message("Here we go! 🚀", ephemeral=True)
-        for i in range(5):
-            await interaction.channel.send("Hello!")
+    @discord.ui.button(label="Click for Magic", style=discord.ButtonStyle.green)
+    async def my_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_message("✨ IT WORKS! ✨", ephemeral=True)
 
-@bot.tree.command(name="write", description="Spawns a magical button (Only for you!)")
+@bot.tree.command(name="write", description="Test the button")
 async def write(interaction: discord.Interaction):
-    await interaction.response.send_message("Click the button below to start!", view=SpamView(), ephemeral=True)
+    await interaction.response.send_message("Click below:", view=SimpleView(), ephemeral=True)
 
-# --- COMMAND 3: THE CHAOS ANNOUNCER (NEW!) ---
+# --- COMMAND 3: THE CHAOS ANNOUNCER ---
 @bot.tree.command(name="announce", description="Ping EVERYONE 5 times! 🔔")
 async def announce(interaction: discord.Interaction, message: str):
-    # 1. Reply to you first so the bot doesn't crash
-    await interaction.response.send_message(f"📢 **ANNOUNCEMENT STARTING!** 📢\nMessage: {message}")
-    
-    # 2. Loop 5 times
+    await interaction.response.send_message(f"📢 **STARTING!** 📢\nMessage: {message}")
     for i in range(5):
         await interaction.channel.send(f"@everyone 🔔 {message}")
-        await asyncio.sleep(1) # Wait 1 second between pings
+        await asyncio.sleep(1)
 
 # --- RUN THE BOT ---
 keep_alive()
