@@ -34,15 +34,24 @@ async def on_ready():
     try:
         synced = await bot.tree.sync()
         print(f"Synced {len(synced)} command(s) globally.")
-        await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="Right-click for options..."))
+        await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="Procraft 👀"))
     except Exception as e:
         print(e)
+
+# ==========================================
+#         👋 BASIC COMMANDS
+# ==========================================
+
+# --- 1. HELLO COMMAND (It's back!) ---
+@bot.tree.command(name="hello", description="Says hello to Procraft!")
+async def hello(interaction: discord.Interaction):
+    await interaction.response.send_message("Hello there! 👋 I am back online!")
 
 # ==========================================
 #    🖱️ RIGHT-CLICK MENUS (THE "APPS" LIST)
 # ==========================================
 
-# --- 1. USER INFO (Right-Click User) ---
+# --- 2. USER INFO (Right-Click User) ---
 @bot.tree.context_menu(name="ℹ️ User Info")
 async def user_info_ctx(interaction: discord.Interaction, member: discord.Member):
     roles = [role.mention for role in member.roles if role != interaction.guild.default_role]
@@ -53,9 +62,9 @@ async def user_info_ctx(interaction: discord.Interaction, member: discord.Member
     embed.add_field(name="🏷️ Roles", value=", ".join(roles) if roles else "None", inline=False)
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
-# --- 2. KICK USER (Right-Click User) ---
+# --- 3. KICK USER (Right-Click User) ---
 @bot.tree.context_menu(name="🦵 Kick User")
-@app_commands.checks.has_permissions(kick_members=True) # Check permissions
+@app_commands.checks.has_permissions(kick_members=True) 
 async def kick_ctx(interaction: discord.Interaction, member: discord.Member):
     try:
         await member.kick(reason="Kicked via Right-Click Menu")
@@ -63,9 +72,9 @@ async def kick_ctx(interaction: discord.Interaction, member: discord.Member):
     except discord.Forbidden:
         await interaction.response.send_message("❌ I can't kick them! (They might be the Boss/Admin)", ephemeral=True)
 
-# --- 3. BAN USER (Right-Click User) ---
+# --- 4. BAN USER (Right-Click User) ---
 @bot.tree.context_menu(name="🔨 Ban User")
-@app_commands.checks.has_permissions(ban_members=True) # Check permissions
+@app_commands.checks.has_permissions(ban_members=True) 
 async def ban_ctx(interaction: discord.Interaction, member: discord.Member):
     try:
         await member.ban(reason="Banned via Right-Click Menu")
@@ -73,12 +82,12 @@ async def ban_ctx(interaction: discord.Interaction, member: discord.Member):
     except discord.Forbidden:
         await interaction.response.send_message("❌ I can't ban them! (They might be the Boss/Admin)", ephemeral=True)
 
-# --- 4. REACTION NUKE (Right-Click Message) ---
+# --- 5. REACTION NUKE (Right-Click Message) ---
 @bot.tree.context_menu(name="💣 Reaction Nuke")
 async def reaction_nuke(interaction: discord.Interaction, message: discord.Message):
     await interaction.response.send_message("☢️ LAUNCHING WARHEADS...", ephemeral=True)
     emojis = ["🤡", "💩", "💀", "😹", "🍌", "🌭", "👻", "👀", "👺", "🍆", "🐔", "🦀", "🤖", "👽", "🧨"]
-    selected_emojis = random.sample(emojis, 10) # 10 Emojis to be safe
+    selected_emojis = random.sample(emojis, 10) 
     
     for emoji in selected_emojis:
         try:
@@ -92,7 +101,7 @@ async def reaction_nuke(interaction: discord.Interaction, message: discord.Messa
 #         ⌨️ SLASH COMMANDS (TYPING)
 # ==========================================
 
-# --- UNBAN (Must be typed because the user is gone) ---
+# --- 6. UNBAN ---
 @bot.tree.command(name="unban", description="🤝 Unban a user using their ID.")
 @app_commands.checks.has_permissions(ban_members=True)
 async def unban(interaction: discord.Interaction, user_id: str):
@@ -103,33 +112,27 @@ async def unban(interaction: discord.Interaction, user_id: str):
     except Exception as e:
         await interaction.response.send_message(f"❌ Failed: {e}", ephemeral=True)
 
-# --- CHAOS PANEL (The Fun Stuff) ---
-# --- FEATURE 2: THE CHAOS CONTROL PANEL ---
+# --- 7. CHAOS PANEL (With Reply Hack!) ---
 class ChaosView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
 
     @discord.ui.button(label="Spam Hello (x5)", style=discord.ButtonStyle.green)
     async def hello_spam(self, interaction: discord.Interaction, button: discord.ui.Button):
-        # We start by confirming the click (hidden)
-        await interaction.response.send_message("🚀 Launching Reply Hack...", ephemeral=True)
-        
+        await interaction.response.send_message("🚀 Launching Spam...", ephemeral=True)
         try:
             for i in range(5):
-                # MAGIC CHANGE: We use 'followup.send' instead of 'channel.send'
-                # This counts as a "Reply" to the button, so it bypasses some restrictions!
+                # Uses followup.send to bypass permissions!
                 await interaction.followup.send(f"Hello! 👋 (Message {i+1})", ephemeral=False)
                 await asyncio.sleep(1)
         except Exception as e:
-            # If it STILL fails, it means the bot is totally blocked (View Channel is off)
-            await interaction.followup.send("❌ I can't even see this channel!", ephemeral=True)
+            await interaction.followup.send("❌ I can't talk here!", ephemeral=True)
 
     @discord.ui.button(label="PING EVERYONE (x5)", style=discord.ButtonStyle.red)
     async def ping_spam(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.send_message("⚠️ NUKE LAUNCHED...", ephemeral=True)
         try:
             for i in range(5):
-                # We can try the same hack for pings too!
                 await interaction.followup.send("@everyone", ephemeral=False)
                 await asyncio.sleep(1)
         except discord.Forbidden:
@@ -145,7 +148,7 @@ async def on_app_command_error(interaction: discord.Interaction, error: app_comm
     if isinstance(error, app_commands.MissingPermissions):
         await interaction.response.send_message("⛔ You need Admin/Mod powers to do that!", ephemeral=True)
     else:
-        print(f"Error: {error}") # Print to logs instead of chat to keep it clean
+        print(f"Error: {error}")
 
 # --- RUN THE BOT ---
 keep_alive()
