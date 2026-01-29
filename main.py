@@ -7,7 +7,7 @@ from threading import Thread
 from discord import app_commands
 from discord.ext import commands
 
-# --- WEBSITE SERVER (For UptimeRobot) ---
+# --- WEBSITE SERVER ---
 app = Flask('')
 
 @app.route('/')
@@ -24,7 +24,7 @@ def keep_alive():
 # --- BOT SETUP ---
 intents = discord.Intents.default()
 intents.message_content = True
-intents.members = True # Needed to find members for unbanning
+intents.members = True # CRITICAL: Needed for Kicking/Banning/Info
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 # --- STARTUP EVENT ---
@@ -34,136 +34,114 @@ async def on_ready():
     try:
         synced = await bot.tree.sync()
         print(f"Synced {len(synced)} command(s) globally.")
-        await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="over the server 🛡️"))
+        await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="Right-click for options..."))
     except Exception as e:
         print(e)
 
 # ==========================================
-#    🛡️ SECURITY & MODERATION COMMANDS 🛡️
+#    🖱️ RIGHT-CLICK MENUS (THE "APPS" LIST)
 # ==========================================
 
-# --- 1. KICK COMMAND ---
-@bot.tree.command(name="kick", description="🦵 Kick a member from the server.")
-@app_commands.describe(member="The user to kick", reason="Why are you kicking them?")
-@app_commands.checks.has_permissions(administrator=True) # Only Admins can use this
-async def kick(interaction: discord.Interaction, member: discord.Member, reason: str = "No reason provided"):
-    try:
-        await member.kick(reason=reason)
-        await interaction.response.send_message(f"🦵 **{member.mention} has been kicked.**\n📝 Reason: {reason}")
-    except discord.Forbidden:
-        await interaction.response.send_message("❌ I don't have permission to kick that user! (Is their role higher than mine?)", ephemeral=True)
-    except Exception as e:
-         await interaction.response.send_message(f"❌ An error occurred: {e}", ephemeral=True)
-
-# --- 2. BAN COMMAND ---
-@bot.tree.command(name="ban", description="🔨 Ban a member from the server.")
-@app_commands.describe(member="The user to ban", reason="Why are you banning them?")
-@app_commands.checks.has_permissions(administrator=True) # Only Admins can use this
-async def ban(interaction: discord.Interaction, member: discord.Member, reason: str = "No reason provided"):
-    try:
-        # Send them a DM before banning so they know why
-        try:
-            await member.send(f"🚫 You have been banned from **{interaction.guild.name}**.\n📝 Reason: {reason}")
-        except:
-            pass # If their DMs are closed, just continue
-
-        await member.ban(reason=reason)
-        await interaction.response.send_message(f"🔨 **{member.mention} has been BANNED.**\n📝 Reason: {reason}")
-    except discord.Forbidden:
-        await interaction.response.send_message("❌ I don't have permission to ban that user! (Is their role higher than mine?)", ephemeral=True)
-    except Exception as e:
-         await interaction.response.send_message(f"❌ An error occurred: {e}", ephemeral=True)
-
-# --- 3. UNBAN COMMAND ---
-@bot.tree.command(name="unban", description="🤝 Unban a user using their ID.")
-@app_commands.describe(user_id="The ID of the user to unban")
-@app_commands.checks.has_permissions(administrator=True) # Only Admins can use this
-async def unban(interaction: discord.Interaction, user_id: str):
-    try:
-        user = await bot.fetch_user(int(user_id))
-        await interaction.guild.unban(user)
-        await interaction.response.send_message(f"🤝 **{user.mention} has been unbanned.**")
-    except discord.NotFound:
-        await interaction.response.send_message("❌ User not found or not banned.", ephemeral=True)
-    except ValueError:
-        await interaction.response.send_message("❌ Invalid User ID. Please provide a number.", ephemeral=True)
-    except Exception as e:
-        await interaction.response.send_message(f"❌ An error occurred: {e}", ephemeral=True)
-
-# --- 4. USERINFO COMMAND ---
-@bot.tree.command(name="userinfo", description="ℹ️ Get information about a user.")
-@app_commands.describe(member="The user to get info on")
-async def userinfo(interaction: discord.Interaction, member: discord.Member):
-    roles = [role.mention for role in member.roles if role != interaction.guild.default_role] # Get their roles
+# --- 1. USER INFO (Right-Click User) ---
+@bot.tree.context_menu(name="ℹ️ User Info")
+async def user_info_ctx(interaction: discord.Interaction, member: discord.Member):
+    roles = [role.mention for role in member.roles if role != interaction.guild.default_role]
     embed = discord.Embed(title=f"User Info: {member.name}", color=member.color)
     embed.set_thumbnail(url=member.avatar.url if member.avatar else member.default_avatar.url)
     embed.add_field(name="🆔 User ID", value=member.id, inline=True)
-    embed.add_field(name="🗓️ Joined Server", value=member.joined_at.strftime("%Y-%m-%d"), inline=True)
-    embed.add_field(name="🎂 Account Created", value=member.created_at.strftime("%Y-%m-%d"), inline=True)
+    embed.add_field(name="🗓️ Joined", value=member.joined_at.strftime("%Y-%m-%d"), inline=True)
     embed.add_field(name="🏷️ Roles", value=", ".join(roles) if roles else "None", inline=False)
-    await interaction.response.send_message(embed=embed)
+    await interaction.response.send_message(embed=embed, ephemeral=True)
 
+# --- 2. KICK USER (Right-Click User) ---
+@bot.tree.context_menu(name="🦵 Kick User")
+@app_commands.checks.has_permissions(kick_members=True) # Check permissions
+async def kick_ctx(interaction: discord.Interaction, member: discord.Member):
+    try:
+        await member.kick(reason="Kicked via Right-Click Menu")
+        await interaction.response.send_message(f"🦵 **{member.mention} was kicked!**", ephemeral=False)
+    except discord.Forbidden:
+        await interaction.response.send_message("❌ I can't kick them! (They might be the Boss/Admin)", ephemeral=True)
 
-# ==========================================
-#         🤡 FUN & CHAOS COMMANDS 🤡
-# ==========================================
+# --- 3. BAN USER (Right-Click User) ---
+@bot.tree.context_menu(name="🔨 Ban User")
+@app_commands.checks.has_permissions(ban_members=True) # Check permissions
+async def ban_ctx(interaction: discord.Interaction, member: discord.Member):
+    try:
+        await member.ban(reason="Banned via Right-Click Menu")
+        await interaction.response.send_message(f"🔨 **{member.mention} was BANNED!**", ephemeral=False)
+    except discord.Forbidden:
+        await interaction.response.send_message("❌ I can't ban them! (They might be the Boss/Admin)", ephemeral=True)
 
-# --- FEATURE 1: THE MEGA REACTION NUKE ☢️ ---
+# --- 4. REACTION NUKE (Right-Click Message) ---
 @bot.tree.context_menu(name="💣 Reaction Nuke")
 async def reaction_nuke(interaction: discord.Interaction, message: discord.Message):
-    await interaction.response.send_message("☢️ LAUNCHING 15 WARHEADS...", ephemeral=True)
-    emojis = [
-        "🤡", "💩", "💀", "😹", "🍌", "🌭", "👻", "👀", "👺", "🍆",
-        "🐔", "🦀", "🐛", "🌵", "🌚", "🧊", "🍅", "🍩", "🗿", "🧨",
-        "🤢", "🤬", "🤖", "👽", "🙉", "🍄", "🧀", "🌭", "🦍", "🧦"
-    ]
-    selected_emojis = random.sample(emojis, 15)
+    await interaction.response.send_message("☢️ LAUNCHING WARHEADS...", ephemeral=True)
+    emojis = ["🤡", "💩", "💀", "😹", "🍌", "🌭", "👻", "👀", "👺", "🍆", "🐔", "🦀", "🤖", "👽", "🧨"]
+    selected_emojis = random.sample(emojis, 10) # 10 Emojis to be safe
+    
     for emoji in selected_emojis:
         try:
             await message.add_reaction(emoji)
             await asyncio.sleep(0.4) 
         except discord.Forbidden:
-            await interaction.followup.send("❌ I hit a wall! (No permissions)", ephemeral=True)
+            await interaction.followup.send("❌ Can't react here!", ephemeral=True)
             break
-        except Exception as e:
-            print(f"Failed to react: {e}")
 
-# --- FEATURE 2: THE CHAOS CONTROL PANEL ---
+# ==========================================
+#         ⌨️ SLASH COMMANDS (TYPING)
+# ==========================================
+
+# --- UNBAN (Must be typed because the user is gone) ---
+@bot.tree.command(name="unban", description="🤝 Unban a user using their ID.")
+@app_commands.checks.has_permissions(ban_members=True)
+async def unban(interaction: discord.Interaction, user_id: str):
+    try:
+        user = await bot.fetch_user(int(user_id))
+        await interaction.guild.unban(user)
+        await interaction.response.send_message(f"🤝 **{user.mention} has been unbanned.**")
+    except Exception as e:
+        await interaction.response.send_message(f"❌ Failed: {e}", ephemeral=True)
+
+# --- CHAOS PANEL (The Fun Stuff) ---
 class ChaosView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
 
     @discord.ui.button(label="Spam Hello (x5)", style=discord.ButtonStyle.green)
     async def hello_spam(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.send_message("🚀 Attempting Hello Spam...", ephemeral=True)
+        await interaction.response.send_message("🚀 Spamming...", ephemeral=True)
         try:
             for i in range(5):
                 await interaction.channel.send("Hello! 👋")
                 await asyncio.sleep(1)
         except discord.Forbidden:
-            await interaction.followup.send("❌ I don't have permission to talk here!", ephemeral=True)
+            await interaction.followup.send("❌ I can't talk here!", ephemeral=True)
 
+    # --- WE KEEP THE PING HERE ---
     @discord.ui.button(label="PING EVERYONE (x5)", style=discord.ButtonStyle.red)
     async def ping_spam(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.send_message("⚠️ Launching Nuke...", ephemeral=True)
+        await interaction.response.send_message("⚠️ NUKE LAUNCHED...", ephemeral=True)
         try:
             for i in range(5):
-                await interaction.channel.send("@everyone")
+                # The bot will TRY to ping. If it fails, it just keeps going.
+                await interaction.channel.send("@everyone") 
                 await asyncio.sleep(1)
         except discord.Forbidden:
-            await interaction.followup.send("❌ I am not allowed to ping everyone here!", ephemeral=True)
+            # This only shows if the bot is TOTALLY blocked from speaking
+            await interaction.followup.send("❌ Failed to send messages!", ephemeral=True)
 
-@bot.tree.command(name="chaos", description="Open the Secret Admin Panel 👮‍♂️")
+@bot.tree.command(name="chaos", description="Open the Secret Panel 👮‍♂️")
 async def chaos(interaction: discord.Interaction):
-    await interaction.response.send_message("👇 Choose your weapon:", view=ChaosView(), ephemeral=True)
+    await interaction.response.send_message("👇 Controls:", view=ChaosView(), ephemeral=True)
 
-# --- ERROR HANDLER (For Permission Checks) ---
+# --- ERROR HANDLER ---
 @bot.tree.error
 async def on_app_command_error(interaction: discord.Interaction, error: app_commands.AppCommandError):
     if isinstance(error, app_commands.MissingPermissions):
-        await interaction.response.send_message("⛔ **You don't have permission to use this command!** (You need Administrator)", ephemeral=True)
+        await interaction.response.send_message("⛔ You need Admin/Mod powers to do that!", ephemeral=True)
     else:
-        await interaction.response.send_message(f"❌ An error occurred: {error}", ephemeral=True)
+        print(f"Error: {error}") # Print to logs instead of chat to keep it clean
 
 # --- RUN THE BOT ---
 keep_alive()
