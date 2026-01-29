@@ -104,32 +104,36 @@ async def unban(interaction: discord.Interaction, user_id: str):
         await interaction.response.send_message(f"❌ Failed: {e}", ephemeral=True)
 
 # --- CHAOS PANEL (The Fun Stuff) ---
+# --- FEATURE 2: THE CHAOS CONTROL PANEL ---
 class ChaosView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
 
     @discord.ui.button(label="Spam Hello (x5)", style=discord.ButtonStyle.green)
     async def hello_spam(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.send_message("🚀 Spamming...", ephemeral=True)
+        # We start by confirming the click (hidden)
+        await interaction.response.send_message("🚀 Launching Reply Hack...", ephemeral=True)
+        
         try:
             for i in range(5):
-                await interaction.channel.send("Hello! 👋")
+                # MAGIC CHANGE: We use 'followup.send' instead of 'channel.send'
+                # This counts as a "Reply" to the button, so it bypasses some restrictions!
+                await interaction.followup.send(f"Hello! 👋 (Message {i+1})", ephemeral=False)
                 await asyncio.sleep(1)
-        except discord.Forbidden:
-            await interaction.followup.send("❌ I can't talk here!", ephemeral=True)
+        except Exception as e:
+            # If it STILL fails, it means the bot is totally blocked (View Channel is off)
+            await interaction.followup.send("❌ I can't even see this channel!", ephemeral=True)
 
-    # --- WE KEEP THE PING HERE ---
     @discord.ui.button(label="PING EVERYONE (x5)", style=discord.ButtonStyle.red)
     async def ping_spam(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.send_message("⚠️ NUKE LAUNCHED...", ephemeral=True)
         try:
             for i in range(5):
-                # The bot will TRY to ping. If it fails, it just keeps going.
-                await interaction.channel.send("@everyone") 
+                # We can try the same hack for pings too!
+                await interaction.followup.send("@everyone", ephemeral=False)
                 await asyncio.sleep(1)
         except discord.Forbidden:
-            # This only shows if the bot is TOTALLY blocked from speaking
-            await interaction.followup.send("❌ Failed to send messages!", ephemeral=True)
+            await interaction.followup.send("❌ I am not allowed to ping everyone here!", ephemeral=True)
 
 @bot.tree.command(name="chaos", description="Open the Secret Panel 👮‍♂️")
 async def chaos(interaction: discord.Interaction):
