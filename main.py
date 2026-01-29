@@ -37,26 +37,33 @@ async def on_ready():
     except Exception as e:
         print(e)
 
-# --- FEATURE 1: THE REACTION NUKE (Context Menu) ---
-# This creates the "Right-Click" command!
+# --- FEATURE 1: THE MEGA REACTION NUKE ☢️ ---
 @bot.tree.context_menu(name="💣 Reaction Nuke")
 async def reaction_nuke(interaction: discord.Interaction, message: discord.Message):
-    # 1. Tell you it's working (Hidden)
-    await interaction.response.send_message("🚀 Launching Emoji Nuke...", ephemeral=True)
+    # 1. Hidden confirmation
+    await interaction.response.send_message("☢️ LAUNCHING 15 WARHEADS...", ephemeral=True)
     
-    # 2. List of funny emojis
-    emojis = ["🤡", "💩", "💀", "😹", "🍌", "🌭", "👻", "👀", "👺", "🍆"]
+    # 2. HUGE Arsenal of Emojis
+    emojis = [
+        "🤡", "💩", "💀", "😹", "🍌", "🌭", "👻", "👀", "👺", "🍆",
+        "🐔", "🦀", "🐛", "🌵", "🌚", "🧊", "🍅", "🍩", "🗿", "🧨",
+        "🤢", "🤬", "🤖", "👽", "🙉", "🍄", "🧀", "🌭", "🦍", "🧦"
+    ]
     
-    # 3. Pick 5 random ones and blast them!
-    selected_emojis = random.sample(emojis, 5)
+    # 3. Pick 15 unique random ones
+    selected_emojis = random.sample(emojis, 15)
     
     for emoji in selected_emojis:
         try:
             await message.add_reaction(emoji)
-            await asyncio.sleep(0.5) # Fast but safe speed
+            # We wait 0.4 seconds so Discord doesn't block us for spamming
+            await asyncio.sleep(0.4) 
         except discord.Forbidden:
-            await interaction.followup.send("❌ I can't react here! (No permissions)", ephemeral=True)
+            await interaction.followup.send("❌ I hit a wall! (No permissions)", ephemeral=True)
             break
+        except Exception as e:
+            # If something else happens, just keep going!
+            print(f"Failed to react: {e}")
 
 # --- FEATURE 2: THE CHAOS CONTROL PANEL ---
 class ChaosView(discord.ui.View):
