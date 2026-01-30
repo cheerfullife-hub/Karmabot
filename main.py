@@ -24,7 +24,7 @@ def keep_alive():
 # --- BOT SETUP ---
 intents = discord.Intents.default()
 intents.message_content = True
-intents.members = True # CRITICAL: Needed for Kicking/Banning/Info
+intents.members = True 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 # --- STARTUP EVENT ---
@@ -42,16 +42,39 @@ async def on_ready():
 #         👋 BASIC COMMANDS
 # ==========================================
 
-# --- 1. HELLO COMMAND (It's back!) ---
 @bot.tree.command(name="hello", description="Says hello to Procraft!")
 async def hello(interaction: discord.Interaction):
     await interaction.response.send_message("Hello there! 👋 I am back online!")
+
+# --- NEW: AVATAR STEALER (Slash Command) ---
+@bot.tree.command(name="avatar", description="🖼️ Steal someone's profile picture in HD!")
+@app_commands.describe(member="The victim to steal from")
+async def avatar(interaction: discord.Interaction, member: discord.Member):
+    # Get the avatar URL (or default if they don't have one)
+    avatar_url = member.avatar.url if member.avatar else member.default_avatar.url
+    
+    embed = discord.Embed(title=f"🖼️ Stolen Avatar: {member.name}", color=member.color)
+    embed.set_image(url=avatar_url)
+    embed.set_footer(text=f"Stolen by {interaction.user.name} 🕵️‍♂️")
+    
+    await interaction.response.send_message(embed=embed)
 
 # ==========================================
 #    🖱️ RIGHT-CLICK MENUS (THE "APPS" LIST)
 # ==========================================
 
-# --- 2. USER INFO (Right-Click User) ---
+# --- NEW: AVATAR STEALER (Right-Click Version) ---
+@bot.tree.context_menu(name="🖼️ Steal Avatar")
+async def avatar_ctx(interaction: discord.Interaction, member: discord.Member):
+    avatar_url = member.avatar.url if member.avatar else member.default_avatar.url
+    
+    embed = discord.Embed(title=f"🖼️ Stolen Avatar: {member.name}", color=member.color)
+    embed.set_image(url=avatar_url)
+    embed.set_footer(text=f"Stolen by {interaction.user.name} 🕵️‍♂️")
+    
+    await interaction.response.send_message(embed=embed)
+
+# --- USER INFO ---
 @bot.tree.context_menu(name="ℹ️ User Info")
 async def user_info_ctx(interaction: discord.Interaction, member: discord.Member):
     roles = [role.mention for role in member.roles if role != interaction.guild.default_role]
@@ -62,7 +85,7 @@ async def user_info_ctx(interaction: discord.Interaction, member: discord.Member
     embed.add_field(name="🏷️ Roles", value=", ".join(roles) if roles else "None", inline=False)
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
-# --- 3. KICK USER (Right-Click User) ---
+# --- KICK USER ---
 @bot.tree.context_menu(name="🦵 Kick User")
 @app_commands.checks.has_permissions(kick_members=True) 
 async def kick_ctx(interaction: discord.Interaction, member: discord.Member):
@@ -72,7 +95,7 @@ async def kick_ctx(interaction: discord.Interaction, member: discord.Member):
     except discord.Forbidden:
         await interaction.response.send_message("❌ I can't kick them! (They might be the Boss/Admin)", ephemeral=True)
 
-# --- 4. BAN USER (Right-Click User) ---
+# --- BAN USER ---
 @bot.tree.context_menu(name="🔨 Ban User")
 @app_commands.checks.has_permissions(ban_members=True) 
 async def ban_ctx(interaction: discord.Interaction, member: discord.Member):
@@ -82,7 +105,7 @@ async def ban_ctx(interaction: discord.Interaction, member: discord.Member):
     except discord.Forbidden:
         await interaction.response.send_message("❌ I can't ban them! (They might be the Boss/Admin)", ephemeral=True)
 
-# --- 5. REACTION NUKE (Right-Click Message) ---
+# --- REACTION NUKE ---
 @bot.tree.context_menu(name="💣 Reaction Nuke")
 async def reaction_nuke(interaction: discord.Interaction, message: discord.Message):
     await interaction.response.send_message("☢️ LAUNCHING WARHEADS...", ephemeral=True)
@@ -101,7 +124,7 @@ async def reaction_nuke(interaction: discord.Interaction, message: discord.Messa
 #         ⌨️ SLASH COMMANDS (TYPING)
 # ==========================================
 
-# --- 6. UNBAN ---
+# --- UNBAN ---
 @bot.tree.command(name="unban", description="🤝 Unban a user using their ID.")
 @app_commands.checks.has_permissions(ban_members=True)
 async def unban(interaction: discord.Interaction, user_id: str):
@@ -112,7 +135,7 @@ async def unban(interaction: discord.Interaction, user_id: str):
     except Exception as e:
         await interaction.response.send_message(f"❌ Failed: {e}", ephemeral=True)
 
-# --- 7. CHAOS PANEL (With Reply Hack!) ---
+# --- CHAOS PANEL ---
 class ChaosView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
@@ -122,7 +145,6 @@ class ChaosView(discord.ui.View):
         await interaction.response.send_message("🚀 Launching Spam...", ephemeral=True)
         try:
             for i in range(5):
-                # Uses followup.send to bypass permissions!
                 await interaction.followup.send(f"Hello! 👋 (Message {i+1})", ephemeral=False)
                 await asyncio.sleep(1)
         except Exception as e:
