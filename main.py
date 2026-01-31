@@ -7,7 +7,9 @@ from threading import Thread
 from discord import app_commands
 from discord.ext import commands
 
-# --- WEBSITE SERVER ---
+print("--- SYSTEM: SCRIPT STARTING ---") # Debug 1
+
+# --- WEBSITE SERVER (Keep Alive) ---
 app = Flask('')
 
 @app.route('/')
@@ -22,48 +24,49 @@ def keep_alive():
     t.start()
 
 # --- BOT SETUP ---
+print("--- SYSTEM: LOADING INTENTS ---") # Debug 2
 intents = discord.Intents.default()
 intents.message_content = True
-intents.members = True # CRITICAL for Soft Ban (Need to see them join)
+intents.members = True 
+
+# Check if Token exists
+my_secret = os.getenv('TOKEN')
+if my_secret is None:
+    print("❌ CRITICAL ERROR: Token not found! Check Render Environment Variables.")
+else:
+    print("✅ SYSTEM: Token found. Attempting login...")
+
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# --- MEMORY LIST (Who is soft banned?) ---
-# Note: If the bot restarts, this list resets!
+# --- MEMORY LIST (Soft Ban) ---
 softbanned_users = set()
 
 # --- STARTUP EVENT ---
 @bot.event
 async def on_ready():
-    print(f"✅ {bot.user} is online!")
+    print(f"✅ SUCCESS: {bot.user} is online and connected to Discord!")
     try:
         synced = await bot.tree.sync()
-        print(f"Synced {len(synced)} command(s) globally.")
-        await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="the door... 🚪"))
+        print(f"✅ Synced {len(synced)} command(s) globally.")
+        await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="Procraft 👀"))
     except Exception as e:
-        print(e)
+        print(f"❌ ERROR SYNCING COMMANDS: {e}")
 
 # ==========================================
-#      🛑 THE "SOFT BAN" TRAP 🛑
+#      🛑 THE "SOFT BAN" TRAP
 # ==========================================
 
-# 1. COMMAND TO START THE TRAP
 @bot.tree.command(name="softban", description="🚪 Kick them immediately every time they rejoin.")
 @app_commands.checks.has_permissions(kick_members=True)
 async def softban(interaction: discord.Interaction, member: discord.Member):
-    # Add them to the "Blacklist"
     softbanned_users.add(member.id)
-    
-    # Send confirmation
     await interaction.response.send_message(f"😈 **{member.name} is now Soft Banned.**\nIf they rejoin, I will kick them instantly.")
-    
-    # Kick them for the first time
     try:
         await member.send("🚫 **Don't you try.** (You are soft-banned).")
         await member.kick(reason="Soft Banned")
     except:
-        pass # If we can't DM/Kick, just ignore it, the trap is set anyway.
+        pass 
 
-# 2. COMMAND TO STOP THE TRAP
 @bot.tree.command(name="unsoftban", description="😇 Remove someone from the auto-kick list.")
 @app_commands.checks.has_permissions(kick_members=True)
 async def unsoftban(interaction: discord.Interaction, user_id: str):
@@ -71,21 +74,17 @@ async def unsoftban(interaction: discord.Interaction, user_id: str):
         id_int = int(user_id)
         if id_int in softbanned_users:
             softbanned_users.remove(id_int)
-            await interaction.response.send_message(f"😇 User {user_id} is free. They can rejoin now.")
+            await interaction.response.send_message(f"😇 User {user_id} is free.")
         else:
-            await interaction.response.send_message("❌ That user is not in the soft-ban list.", ephemeral=True)
+            await interaction.response.send_message("❌ User not found in list.", ephemeral=True)
     except ValueError:
         await interaction.response.send_message("❌ Invalid ID.", ephemeral=True)
 
-# 3. THE TRAP (Event Listener)
 @bot.event
 async def on_member_join(member):
-    # Check if this person is on the naughty list
     if member.id in softbanned_users:
         try:
-            # 1. Whisper to them
-            await member.send("🛑 **Don't you try.** \n(You are soft-banned from this server).")
-            # 2. Kick them immediately
+            await member.send("🛑 **Don't you try.**")
             await member.kick(reason="Soft Ban Auto-Kick")
             print(f"👢 Auto-kicked {member.name}")
         except Exception as e:
@@ -99,12 +98,11 @@ async def on_member_join(member):
 async def hello(interaction: discord.Interaction):
     await interaction.response.send_message("Hello there! 👋 I am back online!")
 
-@bot.tree.command(name="avatar", description="🖼️ Steal someone's profile picture in HD!")
+@bot.tree.command(name="avatar", description="🖼️ Steal someone's profile picture!")
 async def avatar(interaction: discord.Interaction, member: discord.Member):
     avatar_url = member.avatar.url if member.avatar else member.default_avatar.url
     embed = discord.Embed(title=f"🖼️ Stolen Avatar: {member.name}", color=member.color)
     embed.set_image(url=avatar_url)
-    embed.set_footer(text=f"Stolen by {interaction.user.name} 🕵️‍♂️")
     await interaction.response.send_message(embed=embed)
 
 # ==========================================
@@ -201,4 +199,14 @@ async def chaos(interaction: discord.Interaction):
 
 # --- RUN THE BOT ---
 keep_alive()
-bot.run(os.getenv('TOKEN'))
+
+# Check Token and Run
+if my_secret:
+    try:
+        bot.run(my_secret)
+    except discord.errors.LoginFailure:
+        print("❌ ERROR: The Token is invalid! Reset it in Discord Developer Portal.")
+    except Exception as e:
+        print(f"❌ ERROR STARTING BOT: {e}")
+else:
+    print("❌ ERROR: Cannot start bot. Token is missing.")
