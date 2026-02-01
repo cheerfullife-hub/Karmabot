@@ -109,12 +109,27 @@ async def avatar(interaction: discord.Interaction, member: discord.Member):
 #    🖱️ RIGHT-CLICK MENUS
 # ==========================================
 
-@bot.tree.context_menu(name="🖼️ Steal Avatar")
-async def avatar_ctx(interaction: discord.Interaction, member: discord.Member):
-    avatar_url = member.avatar.url if member.avatar else member.default_avatar.url
-    embed = discord.Embed(title=f"🖼️ Stolen Avatar: {member.name}", color=member.color)
-    embed.set_image(url=avatar_url)
-    await interaction.response.send_message(embed=embed)
+@bot.tree.command(name="avatar", description="🖼️ Steal someone's profile picture!")
+async def avatar(interaction: discord.Interaction, member: discord.Member):
+    # 1. FREEZE TIME 🧊 (Tells Discord to wait)
+    await interaction.response.defer()
+
+    try:
+        # 2. Get the avatar safely (Handles missing avatars automatically)
+        avatar_url = member.display_avatar.url 
+        
+        # 3. Create the Embed
+        embed = discord.Embed(title=f"🖼️ Stolen Avatar: {member.name}", color=member.color)
+        embed.set_image(url=avatar_url)
+        embed.set_footer(text=f"Stolen by {interaction.user.name} 🕵️‍♂️")
+
+        # 4. Send the message (We use 'followup' because we deferred earlier)
+        await interaction.followup.send(embed=embed)
+        
+    except Exception as e:
+        # If it fails, print the error to the chat so we know why!
+        await interaction.followup.send(f"❌ Error fetching avatar: {e}")
+        print(f"❌ AVATAR ERROR: {e}")
 
 @bot.tree.context_menu(name="ℹ️ User Info")
 async def user_info_ctx(interaction: discord.Interaction, member: discord.Member):
