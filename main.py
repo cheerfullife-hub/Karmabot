@@ -7,7 +7,7 @@ from threading import Thread
 from discord import app_commands
 from discord.ext import commands
 
-print("--- SYSTEM: SCRIPT STARTING ---") # Debug 1
+print("--- SYSTEM: SCRIPT STARTING ---") 
 
 # --- WEBSITE SERVER (Keep Alive) ---
 app = Flask('')
@@ -24,7 +24,7 @@ def keep_alive():
     t.start()
 
 # --- BOT SETUP ---
-print("--- SYSTEM: LOADING INTENTS ---") # Debug 2
+print("--- SYSTEM: LOADING INTENTS ---") 
 intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True 
@@ -98,24 +98,14 @@ async def on_member_join(member):
 async def hello(interaction: discord.Interaction):
     await interaction.response.send_message("Hello there! 👋 I am back online!")
 
+# --- 🖼️ THE FIXED AVATAR COMMAND (With Time Freezer) ---
 @bot.tree.command(name="avatar", description="🖼️ Steal someone's profile picture!")
 async def avatar(interaction: discord.Interaction, member: discord.Member):
-    avatar_url = member.avatar.url if member.avatar else member.default_avatar.url
-    embed = discord.Embed(title=f"🖼️ Stolen Avatar: {member.name}", color=member.color)
-    embed.set_image(url=avatar_url)
-    await interaction.response.send_message(embed=embed)
-
-# ==========================================
-#    🖱️ RIGHT-CLICK MENUS
-# ==========================================
-
-@bot.tree.command(name="avatar", description="🖼️ Steal someone's profile picture!")
-async def avatar(interaction: discord.Interaction, member: discord.Member):
-    # 1. FREEZE TIME 🧊 (Tells Discord to wait)
+    # 1. FREEZE TIME 🧊
     await interaction.response.defer()
 
     try:
-        # 2. Get the avatar safely (Handles missing avatars automatically)
+        # 2. Get the avatar safely
         avatar_url = member.display_avatar.url 
         
         # 3. Create the Embed
@@ -123,13 +113,25 @@ async def avatar(interaction: discord.Interaction, member: discord.Member):
         embed.set_image(url=avatar_url)
         embed.set_footer(text=f"Stolen by {interaction.user.name} 🕵️‍♂️")
 
-        # 4. Send the message (We use 'followup' because we deferred earlier)
+        # 4. Send
         await interaction.followup.send(embed=embed)
         
     except Exception as e:
-        # If it fails, print the error to the chat so we know why!
         await interaction.followup.send(f"❌ Error fetching avatar: {e}")
         print(f"❌ AVATAR ERROR: {e}")
+
+# ==========================================
+#    🖱️ RIGHT-CLICK MENUS
+# ==========================================
+
+# I added this back so you can Right Click -> Apps -> Steal Avatar
+@bot.tree.context_menu(name="🖼️ Steal Avatar")
+async def avatar_ctx(interaction: discord.Interaction, member: discord.Member):
+    await interaction.response.defer(ephemeral=True) # Freeze time here too!
+    avatar_url = member.display_avatar.url
+    embed = discord.Embed(title=f"🖼️ Stolen Avatar: {member.name}", color=member.color)
+    embed.set_image(url=avatar_url)
+    await interaction.followup.send(embed=embed)
 
 @bot.tree.context_menu(name="ℹ️ User Info")
 async def user_info_ctx(interaction: discord.Interaction, member: discord.Member):
