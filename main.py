@@ -59,8 +59,9 @@ async def on_ready():
 @bot.tree.command(name="softban", description="🚪 Kick them immediately every time they rejoin.")
 @app_commands.checks.has_permissions(kick_members=True)
 async def softban(interaction: discord.Interaction, member: discord.Member):
-    softbanned_users.add(member.id)
+    # This message is public so people know not to mess with you!
     await interaction.response.send_message(f"😈 **{member.name} is now Soft Banned.**\nIf they rejoin, I will kick them instantly.")
+    softbanned_users.add(member.id)
     try:
         await member.send("🚫 **Don't you try.** (You are soft-banned).")
         await member.kick(reason="Soft Banned")
@@ -98,39 +99,36 @@ async def on_member_join(member):
 async def hello(interaction: discord.Interaction):
     await interaction.response.send_message("Hello there! 👋 I am back online!")
 
-# --- 🖼️ THE FIXED AVATAR COMMAND (With Time Freezer) ---
-@bot.tree.command(name="avatar", description="🖼️ Steal someone's profile picture!")
+# --- 🕵️‍♂️ GHOST MODE AVATAR STEALER ---
+@bot.tree.command(name="avatar", description="🖼️ Steal someone's profile picture (Privately!)")
 async def avatar(interaction: discord.Interaction, member: discord.Member):
-    # 1. FREEZE TIME 🧊
-    await interaction.response.defer()
+    # 1. FREEZE TIME + HIDE IT (ephemeral=True) 👻
+    await interaction.response.defer(ephemeral=True)
 
     try:
-        # 2. Get the avatar safely
         avatar_url = member.display_avatar.url 
-        
-        # 3. Create the Embed
         embed = discord.Embed(title=f"🖼️ Stolen Avatar: {member.name}", color=member.color)
         embed.set_image(url=avatar_url)
-        embed.set_footer(text=f"Stolen by {interaction.user.name} 🕵️‍♂️")
-
-        # 4. Send
+        embed.set_footer(text=f"Only you can see this. 🤫")
+        
+        # 2. Send secret message
         await interaction.followup.send(embed=embed)
         
     except Exception as e:
-        await interaction.followup.send(f"❌ Error fetching avatar: {e}")
-        print(f"❌ AVATAR ERROR: {e}")
+        await interaction.followup.send(f"❌ Error: {e}")
 
 # ==========================================
 #    🖱️ RIGHT-CLICK MENUS
 # ==========================================
 
-# I added this back so you can Right Click -> Apps -> Steal Avatar
 @bot.tree.context_menu(name="🖼️ Steal Avatar")
 async def avatar_ctx(interaction: discord.Interaction, member: discord.Member):
-    await interaction.response.defer(ephemeral=True) # Freeze time here too!
+    # Secret Right-Click Steal 🕵️‍♂️
+    await interaction.response.defer(ephemeral=True)
     avatar_url = member.display_avatar.url
     embed = discord.Embed(title=f"🖼️ Stolen Avatar: {member.name}", color=member.color)
     embed.set_image(url=avatar_url)
+    embed.set_footer(text=f"Only you can see this. 🤫")
     await interaction.followup.send(embed=embed)
 
 @bot.tree.context_menu(name="ℹ️ User Info")
@@ -217,7 +215,6 @@ async def chaos(interaction: discord.Interaction):
 # --- RUN THE BOT ---
 keep_alive()
 
-# Check Token and Run
 if my_secret:
     try:
         bot.run(my_secret)
