@@ -212,37 +212,54 @@ class ChaosView(discord.ui.View):
 @bot.tree.command(name="chaos", description="Open the Secret Panel 👮‍♂️")
 async def chaos(interaction: discord.Interaction):
     await interaction.response.send_message("👇 Controls:", view=ChaosView(), ephemeral=True)
-    # ==========================================
-#      🦜 SPONGEBOB MOCK MODE
+# ==========================================
+#      🦜 SPONGEBOB MOCK MODE (UPDATED)
 # ==========================================
 
+# 1. COMMAND TO START MOCKING
 @bot.tree.command(name="mock", description="🦜 Mock everything this user says for 5 minutes!")
 async def mock(interaction: discord.Interaction, member: discord.Member):
-    if member.id == interaction.user.id:
-        await interaction.response.send_message("❌ You can't mock yourself!", ephemeral=True)
-        return
-
-    # Toggle: If on, turn off. If off, turn on.
+    # I REMOVED THE SAFETY LOCK! You can now mock yourself. 😈
+    
     if member.id in mocking_list:
+        # If they are already mocked, just turn it off (Toggle)
         mocking_list.remove(member.id)
         await interaction.response.send_message(f"✋ **Mercy!** Stopped mocking {member.name}.")
     else:
+        # Turn it on
         mocking_list.add(member.id)
-        await interaction.response.send_message(f"🦜 **MOCKING MODE ACTIVATED!**\nEverything {member.name} says will be repeated.")
+        await interaction.response.send_message(f"🦜 **MOCKING ACTIVATED!**\nI will repeat everything {member.name} says.")
         
-        # Auto-stop after 5 minutes
+        # Auto-stop after 5 minutes (so you don't forget)
         await asyncio.sleep(300)
         if member.id in mocking_list:
             mocking_list.remove(member.id)
 
-# THIS RUNS EVERY TIME SOMEONE SENDS A MESSAGE
+# 2. COMMAND TO STOP MOCKING (The Safety Switch) 🛑
+@bot.tree.command(name="unmock", description="😇 Force stop the mocking immediately.")
+@app_commands.checks.has_permissions(administrator=True) # Only YOU (Admin) can use this!
+async def unmock(interaction: discord.Interaction, member: discord.Member):
+    if member.id in mocking_list:
+        mocking_list.remove(member.id)
+        await interaction.response.send_message(f"😇 **Saved.** {member.name} is no longer being mocked.")
+    else:
+        await interaction.response.send_message("❌ That person isn't being mocked right now.", ephemeral=True)
+
+# 3. COMMAND TO STOP *EVERYONE* (The Emergency Nuke) ☢️
+@bot.tree.command(name="silence", description="🛑 STOP ALL MOCKING FOR EVERYONE.")
+@app_commands.checks.has_permissions(administrator=True)
+async def silence(interaction: discord.Interaction):
+    mocking_list.clear() # Wipes the memory list clean
+    await interaction.response.send_message("🛑 **SILENCE!** I have stopped mocking everyone.")
+
+# 4. THE LISTENER (The part that actually does the mocking)
 @bot.event
 async def on_message(message):
-    # 1. Ignore the bot itself (so it doesn't loop)
+    # Ignore the bot itself
     if message.author == bot.user:
         return
 
-    # 2. Check if the user is on the "Mock List"
+    # Check if the user is on the "Mock List"
     if message.author.id in mocking_list:
         try:
             # SpongeBob-ify the text (Random Capitals)
@@ -259,6 +276,9 @@ async def on_message(message):
             print("❌ I don't have permission to delete their message!")
         except Exception as e:
             print(f"❌ Mock Error: {e}")
+            
+    # CRITICAL: This line lets other commands work!
+    await bot.process_commands(message)
 
 # --- RUN THE BOT ---
 keep_alive()
