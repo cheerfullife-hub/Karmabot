@@ -38,8 +38,9 @@ else:
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# --- MEMORY LIST (Soft Ban) ---
+# --- MEMORY LISTS ---
 softbanned_users = set()
+mocking_list = set()       # <--- ADD THIS NEW LINE 🦜
 
 # --- STARTUP EVENT ---
 @bot.event
@@ -211,6 +212,53 @@ class ChaosView(discord.ui.View):
 @bot.tree.command(name="chaos", description="Open the Secret Panel 👮‍♂️")
 async def chaos(interaction: discord.Interaction):
     await interaction.response.send_message("👇 Controls:", view=ChaosView(), ephemeral=True)
+    # ==========================================
+#      🦜 SPONGEBOB MOCK MODE
+# ==========================================
+
+@bot.tree.command(name="mock", description="🦜 Mock everything this user says for 5 minutes!")
+async def mock(interaction: discord.Interaction, member: discord.Member):
+    if member.id == interaction.user.id:
+        await interaction.response.send_message("❌ You can't mock yourself!", ephemeral=True)
+        return
+
+    # Toggle: If on, turn off. If off, turn on.
+    if member.id in mocking_list:
+        mocking_list.remove(member.id)
+        await interaction.response.send_message(f"✋ **Mercy!** Stopped mocking {member.name}.")
+    else:
+        mocking_list.add(member.id)
+        await interaction.response.send_message(f"🦜 **MOCKING MODE ACTIVATED!**\nEverything {member.name} says will be repeated.")
+        
+        # Auto-stop after 5 minutes
+        await asyncio.sleep(300)
+        if member.id in mocking_list:
+            mocking_list.remove(member.id)
+
+# THIS RUNS EVERY TIME SOMEONE SENDS A MESSAGE
+@bot.event
+async def on_message(message):
+    # 1. Ignore the bot itself (so it doesn't loop)
+    if message.author == bot.user:
+        return
+
+    # 2. Check if the user is on the "Mock List"
+    if message.author.id in mocking_list:
+        try:
+            # SpongeBob-ify the text (Random Capitals)
+            original = message.content
+            mocked_text = "".join(random.choice((str.upper, str.lower))(c) for c in original)
+            
+            # Delete their original message
+            await message.delete()
+            
+            # Send the mockery
+            await message.channel.send(f"{message.author.mention} sAyS: \"**{mocked_text}**\" 🤡")
+        
+        except discord.Forbidden:
+            print("❌ I don't have permission to delete their message!")
+        except Exception as e:
+            print(f"❌ Mock Error: {e}")
 
 # --- RUN THE BOT ---
 keep_alive()
