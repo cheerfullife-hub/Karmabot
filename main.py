@@ -241,6 +241,30 @@ async def avatar(interaction: discord.Interaction, member: discord.Member):
 @bot.tree.command(name="chaos", description="Open the Secret Panel 👮‍♂️")
 async def chaos(interaction: discord.Interaction):
     await interaction.response.send_message("👇 Controls:", ephemeral=True)
+    # ==========================================
+#      🤡 THE FAKE "OFFICIAL" PROMOTION
+# ==========================================
+
+@bot.tree.command(name="promote", description="👮‍♂️ Promotes a user to Admin (FAKE).")
+async def promote(interaction: discord.Interaction, member: discord.Member):
+    # This is your ACTUAL Emoji Code! 👇
+    official_emoji = "<:system:1468254317633994844>" 
+    
+    # 1. Create the Fake "Official" Message
+    embed = discord.Embed(
+        title=f"{official_emoji} System Notification", 
+        description=f"**Server Update:** {member.mention} has been promoted to **Administrator**.\nThey now have full access to ban members.",
+        color=0x5865F2 # The exact "Discord Blue" color
+    )
+    
+    # 2. Send the message publicly
+    await interaction.response.send_message(embed=embed)
+    
+    # 3. Wait 5 seconds for them to freak out...
+    await asyncio.sleep(5)
+    
+    # 4. EXPOSE THE PRANK!
+    await interaction.followup.send(f"🤡 Just kidding, {member.mention}. You are still a noob.", ephemeral=False)
 
 # --- RUN THE BOT ---
 keep_alive()
