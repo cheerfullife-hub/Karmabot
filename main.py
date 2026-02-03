@@ -38,9 +38,9 @@ else:
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# --- MEMORY LISTS (The Brains) ---
+# --- MEMORY LISTS ---
 softbanned_users = set()
-mocking_list = set()   # <--- THIS IS CRITICAL FOR MOCKING TO WORK!
+mocking_list = set()   
 
 # --- STARTUP EVENT ---
 @bot.event
@@ -54,12 +54,74 @@ async def on_ready():
         print(f"❌ ERROR SYNCING COMMANDS: {e}")
 
 # ==========================================
+#      🕹️ CHAOS PANEL (Buttons Logic)
+#      (Must be defined BEFORE the command!)
+# ==========================================
+
+class ChaosView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None) # Buttons never expire
+
+    @discord.ui.button(label="Spam Hello (x5)", style=discord.ButtonStyle.green)
+    async def hello_spam(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_message("🚀 Spamming...", ephemeral=True)
+        try:
+            for i in range(5):
+                await interaction.followup.send(f"Hello! 👋 (Message {i+1})", ephemeral=False)
+                await asyncio.sleep(1)
+        except Exception as e:
+            await interaction.followup.send("❌ I can't talk here!", ephemeral=True)
+
+    @discord.ui.button(label="PING EVERYONE (x5)", style=discord.ButtonStyle.red)
+    async def ping_spam(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_message("⚠️ NUKE LAUNCHED...", ephemeral=True)
+        try:
+            for i in range(5):
+                await interaction.followup.send("@everyone", ephemeral=False)
+                await asyncio.sleep(1)
+        except discord.Forbidden:
+            await interaction.followup.send("❌ No permission!", ephemeral=True)
+
+@bot.tree.command(name="chaos", description="Open the Secret Panel 👮‍♂️")
+async def chaos(interaction: discord.Interaction):
+    # This sends the menu with the buttons!
+    await interaction.response.send_message("👇 **CHAOS CONTROL PANEL** 👇", view=ChaosView(), ephemeral=True)
+
+# ==========================================
+#      🤡 STEALTH FAKE PROMOTION
+# ==========================================
+
+@bot.tree.command(name="promote", description="👮‍♂️ Promotes a user to Admin (FAKE).")
+async def promote(interaction: discord.Interaction, member: discord.Member):
+    # 1. HIDE EVIDENCE: Reply only to YOU (Ephemeral)
+    # Note: YOU will see "Procraft used /promote", but others will NOT.
+    await interaction.response.send_message(f"🤫 **Prank launching against {member.name}...**", ephemeral=True)
+
+    # 2. WAIT A SECOND
+    await asyncio.sleep(1)
+
+    # 3. SEND FAKE MESSAGE TO CHANNEL
+    official_emoji = "<:system:1468254317633994844>" 
+    
+    embed = discord.Embed(
+        title=f"{official_emoji} System Notification", 
+        description=f"**Server Update:** {member.mention} has been promoted to **Administrator**.\nThey now have full access to ban members.",
+        color=0x5865F2 
+    )
+    
+    # Use channel.send so it looks like a real alert (not a command response)
+    await interaction.channel.send(embed=embed)
+    
+    # 4. REVEAL
+    await asyncio.sleep(5)
+    await interaction.channel.send(f"🤡 Just kidding, {member.mention}. You are still a noob.")
+
+# ==========================================
 #      🦜 SPONGEBOB MOCK MODE
 # ==========================================
 
 @bot.tree.command(name="mock", description="🦜 Mock everything this user says for 5 minutes!")
 async def mock(interaction: discord.Interaction, member: discord.Member):
-    # Toggle: On/Off
     if member.id in mocking_list:
         mocking_list.remove(member.id)
         await interaction.response.send_message(f"✋ **Mercy!** Stopped mocking {member.name}.")
@@ -67,7 +129,6 @@ async def mock(interaction: discord.Interaction, member: discord.Member):
         mocking_list.add(member.id)
         await interaction.response.send_message(f"🦜 **ACTIVATED!** repeating everything {member.name} says.")
         
-        # Auto-stop after 5 minutes
         await asyncio.sleep(300)
         if member.id in mocking_list:
             mocking_list.remove(member.id)
@@ -95,18 +156,19 @@ async def on_message(message):
     if message.author.id in mocking_list:
         try:
             original = message.content
-            # Random Caps Logic
             mocked_text = "".join(random.choice((str.upper, str.lower))(c) for c in original)
             await message.delete() # Delete original
             await message.channel.send(f"{message.author.mention} sAyS: \"**{mocked_text}**\" 🤡")
-        except:
-            pass # If we can't delete, just ignore it
+        except discord.Forbidden:
+            print("❌ NEED PERMISSION: Go to Server Settings -> Roles -> Karmabot -> Turn ON 'Manage Messages'")
+        except Exception as e:
+            print(f"Mock Error: {e}")
 
     # CRITICAL: This allows other commands to run!
     await bot.process_commands(message)
 
 # ==========================================
-#      🛑 THE "SOFT BAN" TRAP
+#      🛑 SOFT BAN & BASIC COMMANDS
 # ==========================================
 
 @bot.tree.command(name="softban", description="🚪 Kick them immediately every time they rejoin.")
@@ -142,90 +204,6 @@ async def on_member_join(member):
         except:
             pass
 
-# ==========================================
-#      🔫 RUSSIAN ROULETTE (LOBBY SYSTEM)
-# ==========================================
-
-class RouletteLobby(discord.ui.View):
-    def __init__(self, host):
-        super().__init__(timeout=300)
-        self.host = host
-        self.players = [host]
-        self.npcs = []
-
-    def update_embed(self):
-        player_names = [p.name for p in self.players] + [f"🤖 {name}" for name in self.npcs]
-        embed = discord.Embed(title="🔫 Russian Roulette Lobby", color=discord.Color.red())
-        embed.description = "The gun has **1 Bullet**.\nLast one standing wins. Loser gets KICKED."
-        embed.add_field(name=f"👥 Players ({len(player_names)})", value="\n".join(player_names), inline=False)
-        embed.set_footer(text=f"Host: {self.host.name} | Click 'Start' when ready!")
-        return embed
-
-    @discord.ui.button(label="✋ Join Game", style=discord.ButtonStyle.blurple)
-    async def join_game(self, interaction: discord.Interaction, button: discord.ui.Button):
-        if interaction.user in self.players:
-            await interaction.response.send_message("You are already in!", ephemeral=True)
-            return
-        self.players.append(interaction.user)
-        await interaction.response.edit_message(embed=self.update_embed(), view=self)
-
-    @discord.ui.button(label="🤖 Add NPC", style=discord.ButtonStyle.gray)
-    async def add_npc(self, interaction: discord.Interaction, button: discord.ui.Button):
-        if interaction.user != self.host:
-            await interaction.response.send_message("Only Host can add bots!", ephemeral=True)
-            return
-        new_bot = random.choice(["Terminator", "Wall-E", "R2-D2", "Siri", "Alexa", "Steve"])
-        self.npcs.append(new_bot)
-        await interaction.response.edit_message(embed=self.update_embed(), view=self)
-
-    @discord.ui.button(label="🔥 START", style=discord.ButtonStyle.red)
-    async def start_game(self, interaction: discord.Interaction, button: discord.ui.Button):
-        if interaction.user != self.host: return
-        all_participants = self.players + [{"name": f"🤖 {name}", "is_npc": True} for name in self.npcs]
-        
-        if len(all_participants) < 2:
-            await interaction.response.send_message("❌ Need at least 2 players!", ephemeral=True)
-            return
-
-        for child in self.children: child.disabled = True
-        await interaction.response.edit_message(content="**🎲 LOADING REVOLVER...**", view=self)
-        
-        chamber = [0, 0, 0, 0, 0, 1]
-        random.shuffle(chamber)
-        bullet_index = 0
-        while True:
-            for person in all_participants:
-                is_npc = isinstance(person, dict)
-                name = person['name'] if is_npc else person.mention
-                
-                await interaction.channel.send(f"😰 {name} picks up the gun...")
-                await asyncio.sleep(2)
-                
-                if chamber[bullet_index] == 1:
-                    await interaction.channel.send(f"💥 **BANG!** {name} dropped dead!")
-                    if not is_npc:
-                        try:
-                            await person.kick(reason="Lost Roulette")
-                            await interaction.channel.send("👢 **KICKED!**")
-                        except:
-                            await interaction.channel.send("❌ (Too powerful to kick!)")
-                    return 
-                else:
-                    await interaction.channel.send("😅 **CLICK.** Safe.")
-                    await asyncio.sleep(1)
-                
-                bullet_index += 1
-                if bullet_index >= 6: bullet_index = 0
-
-@bot.tree.command(name="roulette", description="🔫 Start a game of Russian Roulette")
-async def roulette(interaction: discord.Interaction):
-    view = RouletteLobby(host=interaction.user)
-    await interaction.response.send_message(embed=view.update_embed(), view=view)
-
-# ==========================================
-#         👋 BASIC COMMANDS
-# ==========================================
-
 @bot.tree.command(name="hello", description="Says hello to Procraft!")
 async def hello(interaction: discord.Interaction):
     await interaction.response.send_message("Hello there! 👋 I am back online!")
@@ -237,34 +215,6 @@ async def avatar(interaction: discord.Interaction, member: discord.Member):
     embed.set_image(url=member.display_avatar.url)
     embed.set_footer(text=f"Only you can see this. 🤫")
     await interaction.followup.send(embed=embed)
-
-@bot.tree.command(name="chaos", description="Open the Secret Panel 👮‍♂️")
-async def chaos(interaction: discord.Interaction):
-    await interaction.response.send_message("👇 Controls:", ephemeral=True)
-    # ==========================================
-#      🤡 THE FAKE "OFFICIAL" PROMOTION
-# ==========================================
-
-@bot.tree.command(name="promote", description="👮‍♂️ Promotes a user to Admin (FAKE).")
-async def promote(interaction: discord.Interaction, member: discord.Member):
-    # This is your ACTUAL Emoji Code! 👇
-    official_emoji = "<:system:1468254317633994844>" 
-    
-    # 1. Create the Fake "Official" Message
-    embed = discord.Embed(
-        title=f"{official_emoji} System Notification", 
-        description=f"**Server Update:** {member.mention} has been promoted to **Administrator**.\nThey now have full access to ban members.",
-        color=0x5865F2 # The exact "Discord Blue" color
-    )
-    
-    # 2. Send the message publicly
-    await interaction.response.send_message(embed=embed)
-    
-    # 3. Wait 5 seconds for them to freak out...
-    await asyncio.sleep(5)
-    
-    # 4. EXPOSE THE PRANK!
-    await interaction.followup.send(f"🤡 Just kidding, {member.mention}. You are still a noob.", ephemeral=False)
 
 # --- RUN THE BOT ---
 keep_alive()
