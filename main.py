@@ -124,22 +124,38 @@ async def promote(interaction: discord.Interaction, member: discord.Member):
 #      🦜 SPONGEBOB MOCK MODE (STEALTH 🥷)
 # ==========================================
 
-@bot.tree.command(name="mock", description="🦜 Mock everything this user says for 5 minutes!")
-async def mock(interaction: discord.Interaction, member: discord.Member):
-    # Toggle: On/Off
-    if member.id in mocking_list:
-        mocking_list.remove(member.id)
-        # 🤫 ONLY YOU SEE THIS
-        await interaction.response.send_message(f"✋ **Mercy!** Stopped mocking {member.name}.", ephemeral=True)
-    else:
-        mocking_list.add(member.id)
-        # 🤫 ONLY YOU SEE THIS
-        await interaction.response.send_message(f"🦜 **SILENT ACTIVATION!** I will mock {member.name} next time they speak.", ephemeral=True)
+# THE LISTENER (The part that actually does the mocking)
+@bot.event
+async def on_message(message):
+    # 1. Ignore the bot itself (so it doesn't loop)
+    if message.author == bot.user:
+        return
+
+    # 2. Check if the user is on the "Mock List"
+    if message.author.id in mocking_list:
         
-        # Auto-stop after 5 minutes
-        await asyncio.sleep(300)
-        if member.id in mocking_list:
-            mocking_list.remove(member.id)
+        # SpongeBob-ify the text
+        original = message.content
+        if original: # Only mock if there is text (ignores images)
+            mocked_text = "".join(random.choice((str.upper, str.lower))(c) for c in original)
+            
+            # --- STEP 3: TRY TO DELETE (But don't crash if we can't) ---
+            try:
+                await message.delete()
+            except discord.Forbidden:
+                # If we can't delete it (because you are Owner), we just ignore the error!
+                pass 
+            except Exception as e:
+                print(f"Delete Error: {e}")
+
+            # --- STEP 4: SEND THE MOCK (This happens no matter what!) ---
+            try:
+                await message.channel.send(f"{message.author.mention} sAyS: \"**{mocked_text}**\" 🤡")
+            except Exception as e:
+                print(f"Send Error: {e}")
+            
+    # CRITICAL: This line lets other commands work!
+    await bot.process_commands(message)
 
 @bot.tree.command(name="unmock", description="😇 Force stop the mocking immediately.")
 @app_commands.checks.has_permissions(administrator=True) 
