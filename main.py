@@ -149,24 +149,40 @@ async def silence(interaction: discord.Interaction):
     await interaction.response.send_message("🛑 **SILENCE!** I have stopped mocking everyone.")
 
 # THE LISTENER (This deletes the messages)
+# THE LISTENER (This deletes the messages)
 @bot.event
 async def on_message(message):
-    if message.author == bot.user: return # Ignore self
+    # 1. Ignore the bot itself (No infinite loops)
+    if message.author == bot.user:
+        return
 
+    # 2. DEBUG PRINT (Check your Render Logs!)
+    # If you don't see this in logs, STEP 1 (Intents) is wrong.
     if message.author.id in mocking_list:
+        print(f"👂 Heard message from {message.author.name}: {message.content}")
+
         try:
+            # SpongeBob-ify the text
             original = message.content
+            if not original: return # Ignore images/stickers
+            
             mocked_text = "".join(random.choice((str.upper, str.lower))(c) for c in original)
-            await message.delete() # Delete original
+            
+            # 3. Try to delete (Might fail if you are Owner)
+            try:
+                await message.delete()
+            except discord.Forbidden:
+                print("❌ ERROR: I need 'Manage Messages' permission to delete this!")
+                # We continue anyway so at least the mock sends!
+            
+            # 4. Send the mockery
             await message.channel.send(f"{message.author.mention} sAyS: \"**{mocked_text}**\" 🤡")
-        except discord.Forbidden:
-            print("❌ NEED PERMISSION: Go to Server Settings -> Roles -> Karmabot -> Turn ON 'Manage Messages'")
+        
         except Exception as e:
-            print(f"Mock Error: {e}")
+            print(f"❌ Mock Error: {e}")
 
     # CRITICAL: This allows other commands to run!
     await bot.process_commands(message)
-
 # ==========================================
 #      🛑 SOFT BAN & BASIC COMMANDS
 # ==========================================
