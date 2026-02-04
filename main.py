@@ -120,15 +120,23 @@ async def promote(interaction: discord.Interaction, member: discord.Member):
 #      🦜 SPONGEBOB MOCK MODE
 # ==========================================
 
+# ==========================================
+#      🦜 SPONGEBOB MOCK MODE (STEALTH 🥷)
+# ==========================================
+
 @bot.tree.command(name="mock", description="🦜 Mock everything this user says for 5 minutes!")
 async def mock(interaction: discord.Interaction, member: discord.Member):
+    # Toggle: On/Off
     if member.id in mocking_list:
         mocking_list.remove(member.id)
-        await interaction.response.send_message(f"✋ **Mercy!** Stopped mocking {member.name}.")
+        # 🤫 ONLY YOU SEE THIS
+        await interaction.response.send_message(f"✋ **Mercy!** Stopped mocking {member.name}.", ephemeral=True)
     else:
         mocking_list.add(member.id)
-        await interaction.response.send_message(f"🦜 **ACTIVATED!** repeating everything {member.name} says.")
+        # 🤫 ONLY YOU SEE THIS
+        await interaction.response.send_message(f"🦜 **SILENT ACTIVATION!** I will mock {member.name} next time they speak.", ephemeral=True)
         
+        # Auto-stop after 5 minutes
         await asyncio.sleep(300)
         if member.id in mocking_list:
             mocking_list.remove(member.id)
