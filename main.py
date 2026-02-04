@@ -26,16 +26,10 @@ def keep_alive():
 # --- BOT SETUP ---
 print("--- SYSTEM: LOADING INTENTS ---") 
 intents = discord.Intents.default()
-intents.message_content = True
+intents.message_content = True # <--- MUST BE ON IN DEVELOPER PORTAL
 intents.members = True 
 
-# Check if Token exists
 my_secret = os.getenv('TOKEN')
-if my_secret is None:
-    print("❌ CRITICAL ERROR: Token not found! Check Render Environment Variables.")
-else:
-    print("✅ SYSTEM: Token found. Attempting login...")
-
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 # --- MEMORY LISTS ---
@@ -45,22 +39,21 @@ mocking_list = set()
 # --- STARTUP EVENT ---
 @bot.event
 async def on_ready():
-    print(f"✅ SUCCESS: {bot.user} is online and connected to Discord!")
+    print(f"✅ SUCCESS: {bot.user} is online!")
     try:
         synced = await bot.tree.sync()
-        print(f"✅ Synced {len(synced)} command(s) globally.")
+        print(f"✅ Synced {len(synced)} command(s).")
         await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="Procraft 👀"))
     except Exception as e:
-        print(f"❌ ERROR SYNCING COMMANDS: {e}")
+        print(f"❌ ERROR SYNCING: {e}")
 
 # ==========================================
 #      🕹️ CHAOS PANEL (Buttons Logic)
-#      (Must be defined BEFORE the command!)
 # ==========================================
 
 class ChaosView(discord.ui.View):
     def __init__(self):
-        super().__init__(timeout=None) # Buttons never expire
+        super().__init__(timeout=None) 
 
     @discord.ui.button(label="Spam Hello (x5)", style=discord.ButtonStyle.green)
     async def hello_spam(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -69,7 +62,7 @@ class ChaosView(discord.ui.View):
             for i in range(5):
                 await interaction.followup.send(f"Hello! 👋 (Message {i+1})", ephemeral=False)
                 await asyncio.sleep(1)
-        except Exception as e:
+        except:
             await interaction.followup.send("❌ I can't talk here!", ephemeral=True)
 
     @discord.ui.button(label="PING EVERYONE (x5)", style=discord.ButtonStyle.red)
@@ -79,28 +72,26 @@ class ChaosView(discord.ui.View):
             for i in range(5):
                 await interaction.followup.send("@everyone", ephemeral=False)
                 await asyncio.sleep(1)
-        except discord.Forbidden:
+        except:
             await interaction.followup.send("❌ No permission!", ephemeral=True)
 
 @bot.tree.command(name="chaos", description="Open the Secret Panel 👮‍♂️")
 async def chaos(interaction: discord.Interaction):
-    # This sends the menu with the buttons!
     await interaction.response.send_message("👇 **CHAOS CONTROL PANEL** 👇", view=ChaosView(), ephemeral=True)
 
 # ==========================================
-#      🤡 STEALTH FAKE PROMOTION
+#      🤡 STEALTH FAKE PROMOTION (FIXED)
 # ==========================================
 
 @bot.tree.command(name="promote", description="👮‍♂️ Promotes a user to Admin (FAKE).")
 async def promote(interaction: discord.Interaction, member: discord.Member):
-    # 1. HIDE EVIDENCE: Reply only to YOU (Ephemeral)
-    # Note: YOU will see "Procraft used /promote", but others will NOT.
-    await interaction.response.send_message(f"🤫 **Prank launching against {member.name}...**", ephemeral=True)
+    # 1. HIDE EVIDENCE (Reply only to YOU)
+    await interaction.response.send_message(f"🤫 **Launching Prank on {member.name}...**", ephemeral=True)
 
-    # 2. WAIT A SECOND
     await asyncio.sleep(1)
 
-    # 3. SEND FAKE MESSAGE TO CHANNEL
+    # 2. PREPARE THE FAKE MESSAGE
+    # Make sure this ID is correct! 👇
     official_emoji = "<:system:1468254317633994844>" 
     
     embed = discord.Embed(
@@ -109,53 +100,36 @@ async def promote(interaction: discord.Interaction, member: discord.Member):
         color=0x5865F2 
     )
     
-    # Use channel.send so it looks like a real alert (not a command response)
-    await interaction.channel.send(embed=embed)
-    
-    # 4. REVEAL
-    await asyncio.sleep(5)
-    await interaction.channel.send(f"🤡 Just kidding, {member.mention}. You are still a noob.")
-
-# ==========================================
-#      🦜 SPONGEBOB MOCK MODE
-# ==========================================
-
-# ==========================================
-#      🦜 SPONGEBOB MOCK MODE (STEALTH 🥷)
-# ==========================================
-
-# THE LISTENER (The part that actually does the mocking)
-@bot.event
-async def on_message(message):
-    # 1. Ignore the bot itself (so it doesn't loop)
-    if message.author == bot.user:
-        return
-
-    # 2. Check if the user is on the "Mock List"
-    if message.author.id in mocking_list:
+    # 3. TRY TO SEND (And catch errors if it fails!)
+    try:
+        await interaction.channel.send(embed=embed)
         
-        # SpongeBob-ify the text
-        original = message.content
-        if original: # Only mock if there is text (ignores images)
-            mocked_text = "".join(random.choice((str.upper, str.lower))(c) for c in original)
-            
-            # --- STEP 3: TRY TO DELETE (But don't crash if we can't) ---
-            try:
-                await message.delete()
-            except discord.Forbidden:
-                # If we can't delete it (because you are Owner), we just ignore the error!
-                pass 
-            except Exception as e:
-                print(f"Delete Error: {e}")
+        # 4. REVEAL AFTER 5 SECONDS
+        await asyncio.sleep(5)
+        await interaction.channel.send(f"🤡 Just kidding, {member.mention}. You are still a noob.")
+        
+    except discord.Forbidden:
+        # If this happens, the bot doesn't have permission!
+        await interaction.followup.send("❌ **ERROR:** I cannot send messages/embeds in this channel! Check my Roles.", ephemeral=True)
+    except Exception as e:
+        await interaction.followup.send(f"❌ **ERROR:** Something broke: {e}", ephemeral=True)
 
-            # --- STEP 4: SEND THE MOCK (This happens no matter what!) ---
-            try:
-                await message.channel.send(f"{message.author.mention} sAyS: \"**{mocked_text}**\" 🤡")
-            except Exception as e:
-                print(f"Send Error: {e}")
-            
-    # CRITICAL: This line lets other commands work!
-    await bot.process_commands(message)
+# ==========================================
+#      🦜 SPONGEBOB MOCK MODE (UNSTOPPABLE)
+# ==========================================
+
+@bot.tree.command(name="mock", description="🦜 Mock everything this user says for 5 minutes!")
+async def mock(interaction: discord.Interaction, member: discord.Member):
+    if member.id in mocking_list:
+        mocking_list.remove(member.id)
+        await interaction.response.send_message(f"✋ **Mercy!** Stopped mocking {member.name}.", ephemeral=True)
+    else:
+        mocking_list.add(member.id)
+        await interaction.response.send_message(f"🦜 **SILENT ACTIVATION!** I will mock {member.name}.", ephemeral=True)
+        
+        await asyncio.sleep(300)
+        if member.id in mocking_list:
+            mocking_list.remove(member.id)
 
 @bot.tree.command(name="unmock", description="😇 Force stop the mocking immediately.")
 @app_commands.checks.has_permissions(administrator=True) 
@@ -172,41 +146,32 @@ async def silence(interaction: discord.Interaction):
     mocking_list.clear()
     await interaction.response.send_message("🛑 **SILENCE!** I have stopped mocking everyone.")
 
-# THE LISTENER (This deletes the messages)
-# THE LISTENER (This deletes the messages)
+# THE LISTENER (The part that actually does the mocking)
 @bot.event
 async def on_message(message):
-    # 1. Ignore the bot itself (No infinite loops)
-    if message.author == bot.user:
-        return
+    if message.author == bot.user: return 
 
-    # 2. DEBUG PRINT (Check your Render Logs!)
-    # If you don't see this in logs, STEP 1 (Intents) is wrong.
     if message.author.id in mocking_list:
-        print(f"👂 Heard message from {message.author.name}: {message.content}")
-
         try:
-            # SpongeBob-ify the text
             original = message.content
-            if not original: return # Ignore images/stickers
+            if not original: return 
             
             mocked_text = "".join(random.choice((str.upper, str.lower))(c) for c in original)
             
-            # 3. Try to delete (Might fail if you are Owner)
+            # TRY TO DELETE (But ignore if we fail)
             try:
                 await message.delete()
-            except discord.Forbidden:
-                print("❌ ERROR: I need 'Manage Messages' permission to delete this!")
-                # We continue anyway so at least the mock sends!
-            
-            # 4. Send the mockery
+            except:
+                pass 
+
+            # SEND THE MOCK (Forcefully!)
             await message.channel.send(f"{message.author.mention} sAyS: \"**{mocked_text}**\" 🤡")
         
         except Exception as e:
-            print(f"❌ Mock Error: {e}")
+            print(f"Mock Error: {e}")
 
-    # CRITICAL: This allows other commands to run!
     await bot.process_commands(message)
+
 # ==========================================
 #      🛑 SOFT BAN & BASIC COMMANDS
 # ==========================================
