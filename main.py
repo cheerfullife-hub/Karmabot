@@ -221,6 +221,40 @@ async def avatar(interaction: discord.Interaction, member: discord.Member):
     embed.set_footer(text=f"Only you can see this. 🤫")
     await interaction.followup.send(embed=embed)
 
+# ==========================================
+#      🚫 FAKE BAN PRANK
+# ==========================================
+
+@bot.tree.command(name="fakeban", description="🔨 Fake ban a user (Scare them!)")
+async def fakeban(interaction: discord.Interaction, member: discord.Member):
+    # 1. HIDE THE EVIDENCE (Only you see this)
+    await interaction.response.send_message(f"😈 **Preparing to fake-ban {member.name}...**", ephemeral=True)
+    await asyncio.sleep(1)
+
+    # 2. THE SCARY OFFICIAL EMBED 🛑
+    # We use your REAL "Official" Emoji Code here!
+    official_emoji = "<:system:1468254317633994844>" 
+    
+    embed = discord.Embed(
+        title=f"{official_emoji} System Notification",
+        description=f"🚫 **{member.mention} has been BANNED from the server.**\n\n**Reason:** Violation of Community Guidelines.\n**Action Taken:** Permanent Ban.",
+        color=0xFF0000 # BRIGHT RED (Scary!)
+    )
+    
+    # 3. SEND TO CHANNEL
+    # We try to send it publicly. If it fails, we tell you secretly.
+    try:
+        await interaction.channel.send(embed=embed)
+        
+        # 4. THE MOMENT OF SILENCE... (Wait 5 seconds)
+        await asyncio.sleep(4)
+        
+        # 5. THE REVEAL 🤡
+        await interaction.channel.send(f"🤡 Just kidding, {member.mention}. You aren't banned... yet.")
+        
+    except discord.Forbidden:
+        await interaction.followup.send("❌ I need 'Embed Links' permission to do this!", ephemeral=True)
+
 # --- RUN THE BOT ---
 keep_alive()
 
