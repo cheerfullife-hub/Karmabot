@@ -26,7 +26,7 @@ def keep_alive():
 # --- BOT SETUP ---
 print("--- SYSTEM: LOADING INTENTS ---") 
 intents = discord.Intents.default()
-intents.message_content = True # <--- MUST BE ON IN DEVELOPER PORTAL
+intents.message_content = True # MUST BE ON IN DEVELOPER PORTAL
 intents.members = True 
 
 my_secret = os.getenv('TOKEN')
@@ -48,7 +48,7 @@ async def on_ready():
         print(f"❌ ERROR SYNCING: {e}")
 
 # ==========================================
-#      🕹️ CHAOS PANEL (Buttons Logic)
+#      🕹️ CHAOS PANEL (Buttons)
 # ==========================================
 
 class ChaosView(discord.ui.View):
@@ -57,41 +57,30 @@ class ChaosView(discord.ui.View):
 
     @discord.ui.button(label="Spam Hello (x5)", style=discord.ButtonStyle.green)
     async def hello_spam(self, interaction: discord.Interaction, button: discord.ui.Button):
+        # Uses the TRICK (response) so it always works
         await interaction.response.send_message("🚀 Spamming...", ephemeral=True)
-        try:
-            for i in range(5):
-                await interaction.followup.send(f"Hello! 👋 (Message {i+1})", ephemeral=False)
-                await asyncio.sleep(1)
-        except:
-            await interaction.followup.send("❌ I can't talk here!", ephemeral=True)
+        for i in range(5):
+            await interaction.followup.send(f"Hello! 👋 (Message {i+1})", ephemeral=False)
+            await asyncio.sleep(1)
 
     @discord.ui.button(label="PING EVERYONE (x5)", style=discord.ButtonStyle.red)
     async def ping_spam(self, interaction: discord.Interaction, button: discord.ui.Button):
+        # Uses the TRICK
         await interaction.response.send_message("⚠️ NUKE LAUNCHED...", ephemeral=True)
-        try:
-            for i in range(5):
-                await interaction.followup.send("@everyone", ephemeral=False)
-                await asyncio.sleep(1)
-        except:
-            await interaction.followup.send("❌ No permission!", ephemeral=True)
+        for i in range(5):
+            await interaction.followup.send("@everyone", ephemeral=False)
+            await asyncio.sleep(1)
 
 @bot.tree.command(name="chaos", description="Open the Secret Panel 👮‍♂️")
 async def chaos(interaction: discord.Interaction):
     await interaction.response.send_message("👇 **CHAOS CONTROL PANEL** 👇", view=ChaosView(), ephemeral=True)
 
 # ==========================================
-#      🤡 STEALTH FAKE PROMOTION (FIXED)
+#      🤡 FAKE PROMOTION (UNBREAKABLE MODE)
 # ==========================================
 
 @bot.tree.command(name="promote", description="👮‍♂️ Promotes a user to Admin (FAKE).")
 async def promote(interaction: discord.Interaction, member: discord.Member):
-    # 1. HIDE EVIDENCE (Reply only to YOU)
-    await interaction.response.send_message(f"🤫 **Launching Prank on {member.name}...**", ephemeral=True)
-
-    await asyncio.sleep(1)
-
-    # 2. PREPARE THE FAKE MESSAGE
-    # Make sure this ID is correct! 👇
     official_emoji = "<:system:1468254317633994844>" 
     
     embed = discord.Embed(
@@ -100,53 +89,89 @@ async def promote(interaction: discord.Interaction, member: discord.Member):
         color=0x5865F2 
     )
     
-    # 3. TRY TO SEND (And catch errors if it fails!)
-    try:
-        await interaction.channel.send(embed=embed)
-        
-        # 4. REVEAL AFTER 5 SECONDS
-        await asyncio.sleep(5)
-        await interaction.channel.send(f"🤡 Just kidding, {member.mention}. You are still a noob.")
-        
-    except discord.Forbidden:
-        # If this happens, the bot doesn't have permission!
-        await interaction.followup.send("❌ **ERROR:** I cannot send messages/embeds in this channel! Check my Roles.", ephemeral=True)
-    except Exception as e:
-        await interaction.followup.send(f"❌ **ERROR:** Something broke: {e}", ephemeral=True)
+    # ⚡ THE TRICK: No channel.send! We use response!
+    # Everyone sees "Procraft used /promote", but it guarantees the message sends.
+    await interaction.response.send_message(embed=embed)
+    
+    await asyncio.sleep(5)
+    
+    # ⚡ TRICK AGAIN: Followup works everywhere
+    await interaction.followup.send(f"🤡 Just kidding, {member.mention}. You are still a noob.")
 
 # ==========================================
-#      🦜 SPONGEBOB MOCK MODE (UNSTOPPABLE)
+#      🚫 FAKE BAN (UNBREAKABLE MODE)
+# ==========================================
+
+@bot.tree.command(name="fakeban", description="🔨 Fake ban a user (Scare them!)")
+async def fakeban(interaction: discord.Interaction, member: discord.Member):
+    official_emoji = "<:system:1468254317633994844>" 
+    
+    embed = discord.Embed(
+        title=f"{official_emoji} System Notification",
+        description=f"🚫 **{member.mention} has been BANNED from the server.**\n\n**Reason:** Violation of Community Guidelines.\n**Action Taken:** Permanent Ban.",
+        color=0xFF0000 
+    )
+    
+    # ⚡ THE TRICK
+    await interaction.response.send_message(embed=embed)
+    
+    await asyncio.sleep(4)
+    await interaction.followup.send(f"🤡 Just kidding, {member.mention}. You are safe!")
+
+# ==========================================
+#      ☑️ FAKE VERIFIED BADGE
+# ==========================================
+
+@bot.tree.command(name="verified", description="☑️ Prove you are a verified bot (FAKE).")
+async def verified(interaction: discord.Interaction):
+    # Use a verified bot emoji here if you have one, or just the checkmark
+    verified_emoji = "✅" 
+    
+    embed = discord.Embed(
+        title=f"System Check {verified_emoji}",
+        description="✅ **Karmabot Identity Confirmed.**\nThis bot is verified by Discord.",
+        color=0x5865F2
+    )
+    # ⚡ THE TRICK
+    await interaction.response.send_message(embed=embed)
+
+# ==========================================
+#      🎭 THE MIMIC (Requires Permission!)
+#      Note: This is the ONLY one that needs specific permission (Webhooks)
+# ==========================================
+
+@bot.tree.command(name="mimic", description="🎭 Make the bot speak as someone else!")
+async def mimic(interaction: discord.Interaction, member: discord.Member, message: str):
+    # ⚡ TRICK: Confirmation message
+    await interaction.response.send_message("🤐 **Stealing identity...**", ephemeral=True)
+
+    try:
+        # We MUST use a Webhook here (The trick doesn't create webhooks)
+        webhook = await interaction.channel.create_webhook(name=member.display_name)
+        await webhook.send(str(message), username=member.display_name, avatar_url=member.display_avatar.url)
+        await webhook.delete()
+    except:
+        await interaction.followup.send("❌ I need 'Manage Webhooks' permission to do this!", ephemeral=True)
+
+# ==========================================
+#      🦜 SPONGEBOB MOCK (UNSTOPPABLE)
 # ==========================================
 
 @bot.tree.command(name="mock", description="🦜 Mock everything this user says for 5 minutes!")
 async def mock(interaction: discord.Interaction, member: discord.Member):
     if member.id in mocking_list:
         mocking_list.remove(member.id)
+        # ⚡ TRICK
         await interaction.response.send_message(f"✋ **Mercy!** Stopped mocking {member.name}.", ephemeral=True)
     else:
         mocking_list.add(member.id)
-        await interaction.response.send_message(f"🦜 **SILENT ACTIVATION!** I will mock {member.name}.", ephemeral=True)
-        
+        # ⚡ TRICK
+        await interaction.response.send_message(f"🦜 **ACTIVATED!** I will mock {member.name}.", ephemeral=True)
         await asyncio.sleep(300)
         if member.id in mocking_list:
             mocking_list.remove(member.id)
 
-@bot.tree.command(name="unmock", description="😇 Force stop the mocking immediately.")
-@app_commands.checks.has_permissions(administrator=True) 
-async def unmock(interaction: discord.Interaction, member: discord.Member):
-    if member.id in mocking_list:
-        mocking_list.remove(member.id)
-        await interaction.response.send_message(f"😇 **Saved.** {member.name} is free.")
-    else:
-        await interaction.response.send_message("❌ They aren't being mocked.", ephemeral=True)
-
-@bot.tree.command(name="silence", description="🛑 STOP ALL MOCKING FOR EVERYONE.")
-@app_commands.checks.has_permissions(administrator=True)
-async def silence(interaction: discord.Interaction):
-    mocking_list.clear()
-    await interaction.response.send_message("🛑 **SILENCE!** I have stopped mocking everyone.")
-
-# THE LISTENER (The part that actually does the mocking)
+# THE LISTENER (Still needs permissions to delete, but wont crash)
 @bot.event
 async def on_message(message):
     if message.author == bot.user: return 
@@ -155,37 +180,32 @@ async def on_message(message):
         try:
             original = message.content
             if not original: return 
-            
             mocked_text = "".join(random.choice((str.upper, str.lower))(c) for c in original)
             
-            # TRY TO DELETE (But ignore if we fail)
-            try:
-                await message.delete()
-            except:
-                pass 
+            # Try to delete (Pass if fails)
+            try: await message.delete()
+            except: pass 
 
-            # SEND THE MOCK (Forcefully!)
+            # Send the mock
             await message.channel.send(f"{message.author.mention} sAyS: \"**{mocked_text}**\" 🤡")
-        
-        except Exception as e:
-            print(f"Mock Error: {e}")
+        except: pass
 
     await bot.process_commands(message)
 
 # ==========================================
-#      🛑 SOFT BAN & BASIC COMMANDS
+#      🛑 SOFT BAN
 # ==========================================
 
 @bot.tree.command(name="softban", description="🚪 Kick them immediately every time they rejoin.")
 @app_commands.checks.has_permissions(kick_members=True)
 async def softban(interaction: discord.Interaction, member: discord.Member):
     softbanned_users.add(member.id)
+    # ⚡ TRICK
     await interaction.response.send_message(f"😈 **{member.name} is now Soft Banned.**")
     try:
-        await member.send("🚫 **Don't you try.**")
         await member.kick(reason="Soft Banned")
     except:
-        pass 
+        await interaction.followup.send("❌ I couldn't kick them (Are they Admin?)", ephemeral=True)
 
 @bot.tree.command(name="unsoftban", description="😇 Remove someone from the auto-kick list.")
 @app_commands.checks.has_permissions(kick_members=True)
@@ -206,62 +226,17 @@ async def on_member_join(member):
         try:
             await member.send("🛑 **Don't you try.**")
             await member.kick(reason="Soft Ban Auto-Kick")
-        except:
-            pass
+        except: pass
 
 @bot.tree.command(name="hello", description="Says hello to Procraft!")
 async def hello(interaction: discord.Interaction):
+    # ⚡ TRICK
     await interaction.response.send_message("Hello there! 👋 I am back online!")
-
-@bot.tree.command(name="avatar", description="🖼️ Steal someone's profile picture (Privately!)")
-async def avatar(interaction: discord.Interaction, member: discord.Member):
-    await interaction.response.defer(ephemeral=True)
-    embed = discord.Embed(title=f"🖼️ Stolen Avatar: {member.name}", color=member.color)
-    embed.set_image(url=member.display_avatar.url)
-    embed.set_footer(text=f"Only you can see this. 🤫")
-    await interaction.followup.send(embed=embed)
-
-# ==========================================
-#      🚫 FAKE BAN PRANK
-# ==========================================
-
-@bot.tree.command(name="fakeban", description="🔨 Fake ban a user (Scare them!)")
-async def fakeban(interaction: discord.Interaction, member: discord.Member):
-    # 1. HIDE THE EVIDENCE (Only you see this)
-    await interaction.response.send_message(f"😈 **Preparing to fake-ban {member.name}...**", ephemeral=True)
-    await asyncio.sleep(1)
-
-    # 2. THE SCARY OFFICIAL EMBED 🛑
-    # We use your REAL "Official" Emoji Code here!
-    official_emoji = "<:system:1468254317633994844>" 
-    
-    embed = discord.Embed(
-        title=f"{official_emoji} System Notification",
-        description=f"🚫 **{member.mention} has been BANNED from the server.**\n\n**Reason:** Violation of Community Guidelines.\n**Action Taken:** Permanent Ban.",
-        color=0xFF0000 # BRIGHT RED (Scary!)
-    )
-    
-    # 3. SEND TO CHANNEL
-    # We try to send it publicly. If it fails, we tell you secretly.
-    try:
-        await interaction.channel.send(embed=embed)
-        
-        # 4. THE MOMENT OF SILENCE... (Wait 5 seconds)
-        await asyncio.sleep(4)
-        
-        # 5. THE REVEAL 🤡
-        await interaction.channel.send(f"🤡 Just kidding, {member.mention}. You aren't banned... yet.")
-        
-    except discord.Forbidden:
-        await interaction.followup.send("❌ I need 'Embed Links' permission to do this!", ephemeral=True)
 
 # --- RUN THE BOT ---
 keep_alive()
-
 if my_secret:
     try:
         bot.run(my_secret)
     except Exception as e:
         print(f"❌ ERROR STARTING BOT: {e}")
-else:
-    print("❌ ERROR: Cannot start bot. Token is missing.")
